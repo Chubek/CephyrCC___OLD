@@ -19,6 +19,7 @@ module Stream : sig
   val npeek : 'a t -> int -> 'a list
   val peek_opt : 'a t -> 'a option
   val npeek_safe : 'a t -> int -> 'a list option
+  val peek_ahead : int -> 'a t -> 'a
   val skip_next : 'a t -> 'a t
   val skip : 'a t -> unit
 
@@ -91,6 +92,16 @@ end = struct
       | _ -> raise Peek_failed
     in
     aux [] n stm'
+
+  let peek_ahead n stm =
+    let stm' = dup stm in
+    let rec aux n' stm'' =
+      match peek_opt stm'' with
+      | Some c when n = 0 -> c
+      | Some _ when n > 0 -> aux (n' - 1) (next stm'')
+      | None -> raise Peek_failed
+    in
+    aux n stm'
 
   let skip_next stm =
     let _ = next stm in
