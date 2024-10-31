@@ -40,6 +40,14 @@ module Scanner = struct
     let lst = Stream.take_until scn.char_stream in
     String.of_seq (List.to_seq lst)
 
+  let implode_while' pred scn =
+    let lexeme = implode_while pred scn in
+    Stream.skip scn.char_stream; lexeme
+
+  let implode_until' pred scn =
+    let lexeme = implode_until pred scn in
+    Stream.skip scn.char_stream; lexeme
+
   let is_letter = function
     | 'a' .. 'z'
     | 'A' .. 'Z' -> true
@@ -120,17 +128,32 @@ module Scanner = struct
 
   let rec scan scn =
     match Stream.peek scn.char_stream with
-    | 'U' | 'L' ->
-      let npeek_lst = Stream.npeek 2 scn.char_stream in
-      if npeek_lst.[1] = '"' || npeek_lst.[1] = '\''
-      then scan (scn ++ EncodingPrefix (String.make 1 (Stream.next scn.char_stream)))
-      else scan scn
+    | ('L' | 'u' | 'U') as c ->
+      let demarque = Stream.npeek 2 scn.char_stream in
+      if c <> 'u' && (demarque = '"' || demarque = '\'')
+      then 
+        begin 
+          Stream.skip scn.char_stream;
+          scan (scn ++ EncodingPrefix (String.make 1 c))
+        end
+      else if c = 'u' && demarque = '8'
+      then 
+        begin 
+          let demarque' = Stream.npeek 3 scn.char_stream in
+          if (demarque' = '"') || (demarque' = '\'')
+          then 
+            begin
+              Stream.skip scn.char_stream; 
+              Stream.skip scn.char_stream;
+              scan (scn ++ EncodingPrefix "u8")
+            end
+        end
     | 'a' .. 'z' | 'A' .. 'Z' | '_' -> 
       scan (scn ++ Identifier ((implode_while is_identifier scn) |> assess_keyword))
     | '1' .. '9' ->
       scan (scn ++ IntegerLiteral (implode_while is_integer scn))
     | '+' | '-' | '>' | '<' | '=' | '*' | '%' | '/' | '&' | '|' | '!' | '~' ->
-      scan (scn ++ Operator (implode_while is_operator scn.))
+      scan (scn ++ Operator (implode_while is_operator scn))
     | '0' ->
       begin
         Stream.skip scn.char_stream;
@@ -142,16 +165,18 @@ module Scanner = struct
         | _ -> raise (Wrong_symbol of (demarque, (Stream.position scn.char_stream)))
       end
     | '"' ->
-      scan (scn ++ StringLiteral (implode_until ((=)'"') ((>>)scn)))
+      scan (scn ++ StringLiteral (implode_until' ((=)'"') ((>>)scn)))
     | '\'' ->
-      scan (scn ++ CharacterLiteral (implode_until ((=)'\'') ((>>)scn)))
+      scan (scn ++ CharacterLiteral (implode_until' ((=)'\'') ((>>)scn)))
     | exception Empty_stream ->
-      if Stream.is_empty scn.token_stream
-      then raise Blank_file
-      else if (Stream.peek_last scn.token_stream
-               |> is_valid_end)
-      then raise End_of_input
-      else raise (Unexpected_eof (Stream.position scn.char_stream))
+      begin
+        if Stream.is_empty scn.token_stream
+        then raise Blank_file
+        else if (Stream.peek_last scn.token_stream
+                 |> is_valid_end)
+        then raise End_of_input
+        else raise (Unexpected_eof (Stream.position scn.char_stream))
+      end
 
 
 end
