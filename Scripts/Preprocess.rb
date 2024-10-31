@@ -20,11 +20,11 @@ class LexicalScanner
   attr_accessor :infile, :slave_log
 
   class IncludeDirective
-    attr_accessor :path, :silent?, :lno
+    attr_accessor :path, :is_silent, :lno
 
-    def initialize(path, silent?, lno)
+    def initialize(path, is_silent, lno)
       @path = path
-      @silent? = silent?
+      @is_silent = is_silent
       @lno = lno
     end
   end
@@ -47,25 +47,25 @@ class LexicalScanner
       lno += 1
       ln = @infile.readline
 
-      unless ln.starts_with? $DIR_PREFIX
+      unless ln.start_with? $DIR_PREFIX
         @slave_log[lno] = [ln, :BYPASS]
-        continue
+        next
       end
 
       if mk_incpatt.match ln
-        @slave_log[lno] = [IncludeDirective.new $2, ($1 == '-s'), ln, :INCLUDE]
-        continue
+        @slave_log[lno] = [IncludeDirective.new($2, ($1 == '-s'), ln), :INCLUDE]
+        next
       end
       
       raise "Syntax error"
     end
 
-    File.close @infile unless @infile == STDIN
+    @infile.close unless @infile == STDIN
     @slave_log
   end
 
   def mk_incpatt
-    Regexp.new '^' + $DIR_PREFIX + $INCDIR_NAME + "\s+(-s|-ns)\s+" + $STR_LDELIM + '(.+)' + $STR_RDELIM + "\s*$"
+    return Regexp.new '^' + $DIR_PREFIX + $INCDIR_NAME + "\s+(-s|-ns)\s+" + $STR_LDELIM + '(.+)' + $STR_RDELIM + "\s*$"
   end
 end
 
@@ -78,18 +78,18 @@ class SyntacticPreprocessor
   end
 
   def handle_incdir(directive)
-    return "\n" if not File.exist? directive.path && directive.silent?
-    return File.read directive.path if directive.exist? directive.path
+    return "\n" if !(File.exist? directive.path) && directive.is_silent
+    return File.read directive.path if (File.exist? directive.path)
     raise "File does not exist: " + directive.path
   end
 
   def syntactically_preprocess
     @slave_log.each do |lno, slave|
-      directive, action = slave
+      constr, action = slave
       if action == :BYPASS
-        @out_lines << directive
+        @out_lines << constr
       elsif action == :INCLUDE
-        @out_lines << handle_incdir
+        @out_lines << (handle_incdir constr)
       end
     end
 
@@ -100,7 +100,7 @@ end
 class OutfileWriter
   attr_reader :out_lines, :outfile
 
-  def initialize(outfile, out_lines)
+  def initialize(out_lines, outfile)
     @outfile = handle_outfile outfile
     @out_lines = out_lines
   end
@@ -112,6 +112,7 @@ class OutfileWriter
 
   def write_outfile
     @out_lines.each { |oln| write_line oln }
+    @outfile.close unless @outfile == STDOUT
   end
 
   def write_line(oln)
@@ -120,16 +121,24 @@ class OutfileWriter
 end
 
 def parse_arguments
-  options = { :infile => nil, :outfile => nil  }
-  return unless ARGV.length > 0
-  i = 0
-  ARGV.each do |arg|
-    if arg == '-o' && ARGV.length > i
-      options[:outfile] = ARGV[i + 1]
-      i += 1
-    end
-    options[:outfile] = ARGV[i] if ARGV.length > i
+  options = { :infile => nil, :outfile => nil }
+  return options unless ARGV.length > 0
+  argv_prime = ARGV.dup
+  first_arg = argv_prime.shift
+  second_arg = argv_prime.shift
+  third_arg = argv_prime.shift
+
+  if first_arg.start_with? '-o'
+    raise "Insuffient amount of arguments" unless second_arg
+    options[:outfile] = second_arg
+    options[:infile] = third_arg if third_arg
+  else
+    options[:infile] = first_arg
   end
+
+  STDERR.puts "Input file set to: " + (options[:infile] == nil ? "STDIN" : options[:infile])
+  STDERR.puts "Output file set to: " + (options[:outfile] == nil ? "STDOUT" : options[:outfile])
+
   options
 end
 
@@ -139,10 +148,10 @@ scanner = LexicalScanner.new options[:infile]
 slave_log = scanner.lexically_scan
 parser = SyntacticPreprocessor.new slave_log
 out_lines = parser.syntactically_preprocess
-outfile_writer = OutfileWriter out_lines, options[:outfile]
+outfile_writer = OutfileWriter.new out_lines, options[:outfile]
 outfile_writer.write_outfile
 
-STDERR.write "File preprocessed successfully"
+STDERR.puts "File preprocessed successfully"
 
 
 
