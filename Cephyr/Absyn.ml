@@ -5,13 +5,14 @@ module Absyn = struct
     }
 
   and top_level =
-    | Tydecl of typ * string option
-    | Gvdecl of vsig * rvalue option
-    | Fndecl of fsig * fbody option
+    | Type of typ * string option
+    | GlobalVariable of vsig * rvalue option
+    | Function of fsig * fbody option
 
   and typ =
     { qual : typqual option
     ; kind : typkind
+    ; tag  : string option
     }
 
   and typqual =
@@ -26,6 +27,7 @@ module Absyn = struct
     | Array of typ * idx list
     | Struct of (string * typ) list
     | Union of (string * typ) list
+    | Packed of typ list * (string * int) list
     | Enum of (string * int option) list
     | Float32
     | Float64
@@ -90,11 +92,62 @@ module Absyn = struct
     | Real of float
     | Ident of string
 
+  and binary_op =
+    | Add
+    | Subtract
+    | Multiply
+    | Divide
+    | Modulo
+    | ShiftBitsLeft
+    | ShiftBitsRight
+    | Conjunct
+    | Disjunct
+    | BitwiseAnd
+    | BitwiseOr
+    | BitwiseXor
+    | Equals
+    | Unequals
+    | GreaterThan
+    | GreaterThanEquals
+    | LesserThan
+    | LesserThanEquals
+    | Assignment of binary_op option
+
+  and unary_op =
+    | LogicalNot
+    | BitwiseNot
+    | IntegeralNegation
+    | Increment
+    | Decrement
+    | AddressOf
+    | Dereference
+    | Membership of exp
+    | Access of exp
+    | Index of exp
+    | Call of exp list
+
   and exp =
     | Constval of const_val
     | Prefix of prefix_exp
     | Postfix of postfix_exp
     | Infix of infix_exp
+
+  and rvalue =
+    | Basic of exp
+    | Compound of init list
+
+  and init =
+    | DesignatedIndex of const_val * exp
+    | DesignatedName of string * exp
+    | Nested of rvalue
+
+  and fbody =
+    lex_scope Stack.t
+
+  and lex_scope =
+    { ldecls : (vsig * rvalue option) list
+    ; stmts  : stmt list
+    }
 
   exception No_entrypoint
 
@@ -107,4 +160,5 @@ module Absyn = struct
   let get_entrypoint = function
     | { _ ; Some ep } -> ep
     | { _ ; None } -> raise No_entrypoint
+
 end
