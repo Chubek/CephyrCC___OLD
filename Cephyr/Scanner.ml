@@ -81,7 +81,7 @@ module Scanner = struct
   let is_identifier c =
     is_letter c || is_digit c || c = '_'
 
-  let is_integer c =
+  let is_zinteger c =
     is_digit c || is_size_letter c
 
   let is_xinteger c =
@@ -184,7 +184,7 @@ module Scanner = struct
       scan (scn ++ (implode_while is_identifier scn) |> assess_keyword)
     | '1' .. '9' ->
       begin
-        let integer_lxm = Stream.take_while is_integer scn.char_stream in
+        let integer_lxm = Stream.take_while is_zinteger scn.char_stream in
         match Stream.peek scn.char_stream with
         | '.' ->
           let real_left = Stream.take_while is_real_num scn.char_stream in
