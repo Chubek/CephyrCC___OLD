@@ -1,0 +1,25 @@
+\DocumentMetadata{}
+\documentclass[a4paper]{artcile}
+
+\includeonly{Common}
+
+
+\begin{document}
+
+\title{Preliminary Report on \ccnm; \ccurl}
+\author{\ccauth; \authurl}
+\date{\today}
+
+This document discusses my preliminary work on \cclang{} compiler, \ccnm. It delves into the nitty-gritty of developing a \cclang{} compiler as a one-man team and it offers explanation for decisions taken in construction of \ccnm.
+
+If you visit \ccurl, you can view my progress in \ccnm. The standard for \cclang{} which \ccnm{} follows is \ccstd. So far, the \cclexer{} has been written, and for that, an imperative stream, \module{Stream} was constructed. 
+
+The \ccast{} has also been written. It might be missing some elements of the \ccstd{}; however, I am aiming to generate code\footnote{More on target later} for a subset of \cclang{} first --- therefore, I am not worried if the \ccast{} lacks certain aspects of \ccstd.
+
+Now, let's turn our attention to \cchir. The \module{HLInter} is responsible for the high-leverl intermediate representation\ccMkRef{Muchnick}, and it's based on \ccMkRef{CIL}.
+
+
+
+
+
+\end{document}
