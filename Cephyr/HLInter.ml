@@ -1,15 +1,24 @@
-module Inter = struct
-   type lvalue =
+module HLInter = struct
+   type t =
+           { prog   : stmt Stream.t
+           ; lvtbl  : (string, lvalue) Hashtbl.t
+           ; typtbl : (string, typ) Hashtbl.t
+           }
+ 
+   and lvalue =
            { lbase  : lbase
            ; loffs  : loffs
            }
+
    and lbase =
            | Var of variable
            | Mem of exp
+
    and loffs =
            | NoOffs
            | Field of field * loffs 
            | Index of exp * loffs
+
    and exp =
            | Constant of const
            | Lvalue of lvalue
@@ -21,10 +30,12 @@ module Inter = struct
            | Cast of typ * exp
            | AddrOf of lvalue
            | StartOf of lvalue
+
    and instr =
            | Set of lvalue * exp
            | Call of lvalue option * exp list
            | Asm of string * lvalue list * exp list
+
    and stmt =
            | Instr of instr list
            | Return of exp option
@@ -34,6 +45,7 @@ module Inter = struct
            | If of exp * stmt list * stmt list
            | Switch of exp * stmt list * stmt list
            | Loop of stmt list
+
    and typ =
            | Void
            | Array of typ * exp list
@@ -45,4 +57,9 @@ module Inter = struct
            | Named of string * typ
            | Struct of string * field list
            | Union of string * field list
+
+   let empty : t = { prog   = Stream.empty () 
+                   ; lvtbl  = Hashtbl.create 21 
+                   ; typtbl = Hashtbl.create 21 
+                   }
 end
