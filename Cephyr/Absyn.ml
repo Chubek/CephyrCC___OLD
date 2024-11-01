@@ -7,7 +7,7 @@ module Absyn = struct
   and top_level =
     | Type of typ * string option
     | GlobalVariable of vsig * rvalue option
-    | Function of fsig * fbody option
+    | Function of fsig * scope option
 
   and typ =
     { qual : typqual option
@@ -141,13 +141,21 @@ module Absyn = struct
     | DesignatedName of string * exp
     | Nested of rvalue
 
-  and fbody =
-    lex_scope Stack.t
-
-  and lex_scope =
-    { ldecls : (vsig * rvalue option) list
-    ; stmts  : stmt list
+  and scope =
+    { decls : (vsig * rvalue option) list
+    ; stmts : stmt list
     }
+
+  and stmt =
+    | IfCond of if_guard * if_guard list * stmt option
+    | ForLoop of for_guard * stmt
+    | WhileLoop of exp * stmt
+    | DoWhileLoop of stmt * exp
+    | CaseSwitch of exp * (const_val * stmt) list * stmt
+    | Goto of string
+    | Return of exp
+    | Break
+    | Continue
 
   exception No_entrypoint
 
