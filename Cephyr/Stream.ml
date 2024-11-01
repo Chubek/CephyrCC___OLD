@@ -8,6 +8,7 @@ module Stream : sig
 
   val of_list : 'a list -> 'a t
   val is_spent : 'a t -> bool
+  val position : 'a t -> int
   val append : 'a t -> 'a list -> unit
   val (<<-) : 'a t -> 'a -> unit
   val dup : 'a t -> 'a t
@@ -44,6 +45,8 @@ end = struct
 
   let is_spent stm = Seq.is_empty !stm
 
+  let position stm = Seq.length !stm
+
   let append stm lst = 
     stm := Seq.append !stm (List.to_seq lst)
 
@@ -76,8 +79,12 @@ end = struct
     aux [] n stm'
 
   let peek_last stm =
-    let inv = rev stm in
-    peek inv
+    if is_spent stm then raise Empty_stream
+    else 
+      begin
+        let inv = rev stm in
+        peek inv
+      end
 
   let peek_opt stm =
     match !stm () with
