@@ -1,7 +1,7 @@
 module Scanner = struct
   type t =
     { token_stream : token Stream.t
-    ; char_stream  : char Stream.t
+-W-L
     }
 
   and token =
