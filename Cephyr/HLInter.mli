@@ -8,6 +8,9 @@ module type HLInter = sig
   type stmt
   type typ
 
+  exception LValue_not_found
+  exception Type_not_found
+
   val empty : t
   val (<<-) : t -> stmt -> t
 
