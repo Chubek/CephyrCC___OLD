@@ -1,30 +1,32 @@
 module Parsec = struct
-  type 'a t =
-    | SatisfySingle of 'a
-    | SatisfyPair of ('a * 'a)
-    | SatisfyMultiple of 'a list
-    | SatisfyReturn of ('a -> t)
-    | SatisfyBind of ('a -> 'a)
-    | SatisfyPredicate of ('a -> bool)
-    | Subsequent of t * t
-    | Alternate of t * t
-    | Many of t
-    | Terminates of t * t
-    | SepBy of t * t
-    | EndBy of t * t
-    | WrappedBy of t * t
-    | Between of (t * t) * t
-    | Prefix of t * t
-    | Suffix of t * t
-    | RightInfix of t * t
-    | LeftInfix of t * t
-    | Exactly of t * int
-    | Range of t * (int * int)
-    | Nested of t
-    | AtLeastOnce of t
-    | AtMostOnce of t
-    | Mandatory of t
-    | Optional of t
+  type t = 
+    { scanner : Scanner.t
+    ; absyn   : Absyn.t
+    ; rules   : parse_rule list
+    }
 
+  and parse_rule =
+    { input   : Stream.token list
+    ; run     : parse_run
+    ; success : unit -> unit
+    ; failure : unit -> unit
+    }
+
+  and parse_run =
+    | Satisfy of Stream.token list
+    | Combine of parse_run * parse_run
+    | Alternate of parse_run * parse_run
+    | Many of parse_run * parse_run
+    | Between of parse_run * parse_run
+    | Skip of parse_run
+    | SepBy of parse_run * parse_run
+    | EndBy of parse_run * parse_run
+    | Prefix of parse_run * parse_run
+    | InfixLeft of parse_run * parse_run
+    | InfixRight of parse_run * parse_run
+    | Postfix of parse_run * parse_run
+    | Range of parse_run * (int * int)
+    | Exactly of parse_run * int
+    | Nest of parse_run * parse_run
 
 end
